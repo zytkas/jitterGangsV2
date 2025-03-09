@@ -1,0 +1,11 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/.vs
+/jitterGangs/bin
+/jitterGangs/obj
+/jitterGangs/Properties/PublishProfiles
+/jitterGangs/Services/Admin
+/jitterGangs/Services/SecureConstants.cs
+/jitterGangs/Services/SecureLicenseStorage.cs

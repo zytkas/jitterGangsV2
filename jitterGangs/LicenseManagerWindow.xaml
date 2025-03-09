@@ -1,0 +1,174 @@
+<ui:FluentWindow x:Class="jitterGangs.Admin.LicenseManagerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        xmlns:local="clr-namespace:jitterGangs.Admin"
+        mc:Ignorable="d"
+        Title="License Manager" 
+        Width="800" 
+        MinWidth="800"
+        Height="600"
+        MinHeight="400"
+        WindowStyle="None"
+        WindowCornerPreference="Round"
+        WindowStartupLocation="CenterScreen"
+        Background="#FF151515" Icon="pack://application:,,,/coffee-mug.png">
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Title Bar -->
+        <Border Grid.Row="0"
+                Background="#171717" 
+                Height="40"
+                CornerRadius="6"
+                Margin="0,0,0,15">
+            <DockPanel LastChildFill="False" Margin="8,0">
+                <StackPanel DockPanel.Dock="Left" 
+                           Orientation="Horizontal" 
+                           VerticalAlignment="Center">
+                    <ui:SymbolIcon Symbol="Key16" 
+                                  Foreground="#FFA4C2F1"
+                                  FontSize="16"
+                                  Margin="0,0,8,0"/>
+                    <TextBlock Text="License Manager" 
+                              Foreground="White"
+                              VerticalAlignment="Center" 
+                              FontSize="18"/>
+                </StackPanel>
+
+                <ui:Button DockPanel.Dock="Right"
+                          Width="24" 
+                          Height="24"
+                          Padding="0"
+                          Command="{Binding CloseCommand}">
+                    <ui:SymbolIcon Symbol="Dismiss16"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"/>
+                </ui:Button>
+            </DockPanel>
+        </Border>
+
+        <!-- Main Content -->
+        <Grid Grid.Row="1" Margin="0,0,0,15">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Actions Panel -->
+            <StackPanel Grid.Row="0" 
+                        Orientation="Horizontal" 
+                        Margin="0,0,0,15">
+                <ui:Button Content="Generate New License"
+                          Icon="Add16"
+                          Command="{Binding GenerateLicenseCommand}"
+                          Margin="0,0,8,0">
+                    <ui:Button.Background>
+                        <SolidColorBrush Color="#FF095EB5" Opacity="0.7"/>
+                    </ui:Button.Background>
+                </ui:Button>
+
+                <ui:Button Content="Refresh List"
+                          Icon="ArrowSync16"
+                          Command="{Binding LoadLicensesCommand}"
+                          Appearance="Secondary"/>
+            </StackPanel>
+
+            <!-- Licenses DataGrid -->
+            <DataGrid Grid.Row="1" 
+                      ItemsSource="{Binding Licenses}"
+                      SelectedItem="{Binding SelectedLicense}"
+                      AutoGenerateColumns="False"
+                      IsReadOnly="True"
+                      Background="#18181B"
+                      BorderBrush="#27272A"
+                      BorderThickness="1"
+                      GridLinesVisibility="Horizontal"
+                      HeadersVisibility="Column"
+                      RowBackground="#18181B"
+                      AlternatingRowBackground="#1C1C1F"
+                      CanUserResizeRows="False"
+                      SelectionMode="Single"
+                      SelectionUnit="FullRow">
+                <DataGrid.Resources>
+                    <Style TargetType="DataGridColumnHeader">
+                        <Setter Property="Background" Value="#202024"/>
+                        <Setter Property="Foreground" Value="#FFA4C2F1"/>
+                        <Setter Property="Padding" Value="8,8"/>
+                        <Setter Property="BorderThickness" Value="0,0,1,1"/>
+                        <Setter Property="BorderBrush" Value="#27272A"/>
+                    </Style>
+                </DataGrid.Resources>
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="License Key" 
+                                      Binding="{Binding Key}" 
+                                      Width="150"/>
+                    <DataGridTextColumn Header="Created" 
+                                      Binding="{Binding CreatedAtFormatted}" 
+                                      Width="150"/>
+                    <DataGridTextColumn Header="HWID" 
+                                      Binding="{Binding Hwid}" 
+                                      Width="150"/>
+                    <DataGridTemplateColumn Header="Status" Width="75">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Status}"
+                                         Foreground="{Binding StatusColor}"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Header="Actions" Width="Auto">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal">
+                                    <ui:Button Content="Copy"
+                                              Icon="Copy16"
+                                              Appearance="Secondary"
+                                              Height="24"
+                                              Padding="8,0"
+                                              Margin="0,0,4,0"
+                                              Command="{Binding DataContext.CopyLicenseKeyCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                              CommandParameter="{Binding}"/>
+                                    <ui:Button Content="Reset HWID"
+                                              Icon="Key16"
+                                              Appearance="Secondary"
+                                              Height="24"
+                                              Padding="8,0"
+                                              Margin="0,0,4,0"
+                                              Command="{Binding DataContext.ResetHwidCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                              CommandParameter="{Binding}"/>
+                                    <ui:Button Content="Revoke"
+                                              Icon="Delete16"
+                                              Height="24"
+                                              Padding="8,0"
+                                              Background="#FF4B2A2A"
+                                              Command="{Binding DataContext.RevokeLicenseCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                              CommandParameter="{Binding}"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Grid>
+
+        <!-- Status Bar -->
+        <DockPanel Grid.Row="2" 
+                   LastChildFill="False">
+            <TextBlock Text="{Binding StatusText}"
+                      DockPanel.Dock="Left"
+                      Foreground="#FFA4C2F1"/>
+            <TextBlock Text="{Binding TotalLicenses}"
+                      DockPanel.Dock="Right"
+                      Foreground="#FFA4C2F1"/>
+        </DockPanel>
+        <ContentPresenter x:Name="RootContentDialogPresenter" Grid.Row="1" />
+    </Grid>
+</ui:FluentWindow>

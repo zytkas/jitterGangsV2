@@ -1,0 +1,319 @@
+﻿<ui:FluentWindow x:Class="jitterGangs.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml" 
+        xmlns:local="clr-namespace:jitterGangs"
+        mc:Ignorable="d"
+        Title="JitterGang" Width="275" Height="665"
+        MinWidth="300"       
+        MinHeight="600"
+        WindowStyle="None"
+        WindowCornerPreference="Round"
+        ResizeMode="NoResize"
+        Padding="0" Margin="0"
+        WindowStartupLocation="CenterScreen"
+        Background="#FF151515" Icon="pack://application:,,,/coffee-mug.png">
+
+    <ui:FluentWindow.Resources>
+        <local:BoolToControlAppearanceConverter x:Key="BoolToAppearanceConverter"/>
+    </ui:FluentWindow.Resources>
+
+    <Grid Margin="20">
+        <!-- First, define your row definitions -->
+        <Grid.RowDefinitions>
+            <!-- Title bar -->
+            <RowDefinition Height="Auto"/>
+            <!-- Process -->
+            <RowDefinition Height="Auto"/>
+            <!-- Strength -->
+            <RowDefinition Height="Auto"/>
+            <!-- Delay -->
+            <RowDefinition Height="Auto"/>
+            <!-- Pull Down -->
+            <RowDefinition Height="Auto"/>
+            <!-- Toggle Key -->
+            <RowDefinition Height="Auto"/>
+            <!-- Checkboxes -->
+            <RowDefinition Height="Auto"/>
+            <!-- Buttons -->
+            <RowDefinition Height="Auto"/>
+            <!-- Credits -->
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0"
+        Background="#171717" 
+        Height="40"
+        CornerRadius="6"
+        Margin="0,0,0,15" Grid.ColumnSpan="2">
+            <DockPanel LastChildFill="False" Margin="8,0">
+                <!-- Left side - Title with icon -->
+                <StackPanel DockPanel.Dock="Left" 
+                   Orientation="Horizontal" 
+                   VerticalAlignment="Center">
+                    <Image Source="/coffee-mug.png"
+                       Width="16"
+                       Height="16"
+                       Margin="0,0,8,0"/>   
+                    <TextBlock Text="JitterGang" 
+                      Foreground="White"
+                      VerticalAlignment="Center" FontSize="18"/>
+                </StackPanel>
+
+                <!-- Right side - Control buttons -->
+                <StackPanel DockPanel.Dock="Right" 
+            Orientation="Horizontal"
+            VerticalAlignment="Center">
+                    <ui:Button Appearance="Secondary"
+               Width="24" 
+               Height="24"
+               Padding="0"
+               Margin="0,0,4,0" Click="Button_Click">
+                        <ui:SymbolIcon Symbol="Subtract16" 
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Center"/>
+                    </ui:Button>
+                    <ui:Button
+               Width="24" 
+               Height="24"
+               Padding="0" Click="Button_Click_1">
+                        <ui:SymbolIcon Symbol="Dismiss16"
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Center"/>
+                    </ui:Button>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- Process Selection -->
+        <StackPanel Grid.Row="1" Margin="0,2,0,22" Grid.ColumnSpan="2">
+            <!-- Label with icon -->
+            <DockPanel Margin="0,0,0,8">
+                <ui:SymbolIcon Symbol="Target16" 
+                      FontSize="16" 
+                      Foreground="#FFA4C2F1"
+                      Margin="0,0,8,0"/>
+                <TextBlock Text="Process" 
+                   Foreground="#FFA4C2F1" 
+                   FontSize="14"
+                   VerticalAlignment="Center"/>
+            </DockPanel>
+            <ComboBox ItemsSource="{Binding Processes}"
+                 SelectedItem="{Binding Settings.SelectedProcess}"
+                 Background="#18181B"
+                 BorderBrush="#27272A"
+                 BorderThickness="3"
+                 Height="40"/>
+
+            <!-- ComboBox -->
+        </StackPanel>
+
+        <!-- Strength -->
+        <StackPanel Grid.Row="1" Margin="0,85,0,15" Grid.ColumnSpan="2" Grid.RowSpan="2">
+            <DockPanel Margin="0,0,0,8">
+                <ui:SymbolIcon Symbol="Flash16" 
+                      Foreground="#FFA4C2F1"
+                      FontSize="16"
+                      Margin="0,0,8,0"/>
+                <TextBlock Text="Strength" 
+                  Foreground="#FFA4C2F1"
+                  FontSize="14"/>
+            </DockPanel>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Slider Value="{Binding Settings.Strength}"
+                TickFrequency="1" 
+                IsSnapToTickEnabled="True"
+                Minimum="1" 
+                Maximum="50"
+                TickPlacement="BottomRight"/>
+                <TextBlock Grid.Column="1" 
+                   Text="{Binding Settings.Strength}" 
+                   Foreground="#FFA4C2F1"
+                   Margin="8,0,0,0"
+                   VerticalAlignment="Center"/>
+            </Grid>
+        </StackPanel>
+        <!-- Delay -->
+        <StackPanel Grid.Row="3" Margin="0,0,0,15" Grid.ColumnSpan="2">
+            <DockPanel Margin="0,0,0,8">
+                <ui:SymbolIcon Symbol="Clock16" 
+                      Foreground="#FFA4C2F1"
+                      FontSize="16"
+                      Margin="0,0,8,0"/>
+                <TextBlock Text="Delay" 
+                  Foreground="#FFA4C2F1"
+                  FontSize="14"/>
+            </DockPanel>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Slider Value="{Binding Settings.Delay}"
+                TickFrequency="1" 
+                IsSnapToTickEnabled="True"
+                Minimum="1" 
+                Maximum="100"
+                TickPlacement = "BottomRight"/>
+                <TextBlock Grid.Column="1" 
+                   Text="{Binding Settings.Delay}" 
+                   Foreground="#FFA4C2F1"
+                   Margin="8,0,0,0"
+                   VerticalAlignment="Center"/>
+            </Grid>
+        </StackPanel>
+
+        <!-- Pull Down -->
+        <StackPanel Grid.Row="3" Margin="0,67,0,15" Grid.ColumnSpan="2" Grid.RowSpan="2">
+            <DockPanel Margin="0,0,0,8">
+                <ui:SymbolIcon Symbol="ArrowDown16" 
+                      Foreground="#FFA4C2F1"
+                      FontSize="16"
+                      Margin="0,0,8,0"/>
+                <TextBlock Text="Pull Down" 
+                  Foreground="#FFA4C2F1"
+                  FontSize="14"/>
+            </DockPanel>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Slider Value="{Binding Settings.PullDownStrength}"
+                TickFrequency="1" 
+                IsSnapToTickEnabled="True"                        
+                TickPlacement="BottomRight"
+                Minimum="0" 
+                Maximum="50"/>
+                <TextBlock Grid.Column="1" 
+                   Text="{Binding Settings.PullDownStrength}" 
+                   Foreground="#FFA4C2F1"
+                   Margin="8,0,0,0"
+                   VerticalAlignment="Center"/>
+            </Grid>
+        </StackPanel>
+
+        <!-- Toggle Key -->
+        <StackPanel Grid.Row="5" Margin="0,0,0,15" Grid.ColumnSpan="2">
+            <DockPanel Margin="0,0,0,8">
+                <ui:SymbolIcon Symbol="Power20" 
+                      Foreground="#FFA4C2F1"
+                      FontSize="16"
+                      Margin="0,0,8,0"/>
+                <TextBlock Text="Turn ON/OFF" 
+                  Foreground="#FFA4C2F1"
+                  FontSize="14"/>
+            </DockPanel>
+            <ComboBox ItemsSource="{Binding AvailableKeys}"
+                 SelectedItem="{Binding Settings.ToggleKey}"
+                 Background="#18181B"
+                 BorderBrush="#27272A"
+                 BorderThickness="3"
+                 Height="40"/>
+        </StackPanel>
+
+        <!-- Checkboxes section -->
+        <StackPanel Grid.Row="5" Margin="0,76,0,15" Grid.ColumnSpan="2" Grid.RowSpan="2">
+            <!-- Circle Jitter -->
+            <DockPanel Margin="0,4,0,4">
+                <ui:SymbolIcon Symbol="Target16"
+                      FontSize="16"
+                      Margin="0,0,8,0"
+                      Foreground="#FFA4C2F1"/>
+                <ui:ToggleSwitch Content="Circle Jitter"
+                        IsChecked="{Binding Settings.IsCircleJitterActive}"
+                        Foreground="#FFA4C2F1" Background="#FF2076FF"/>
+            </DockPanel>
+
+            <!-- Controller -->
+            <DockPanel Margin="0,4,0,4">
+                <ui:SymbolIcon Symbol="XboxController16"
+                  FontSize="16"
+                  Margin="0,0,8,0"
+                  Foreground="#FFA4C2F1"/>
+                <ui:ToggleSwitch Content="Controller?"
+                  IsChecked="{Binding Settings.UseController, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                  Foreground="#FFA4C2F1"
+                  Background="#FF2076FF" Click="ToggleSwitch_Click_1"/>
+            </DockPanel>
+
+            <!-- ADS Only -->
+            <DockPanel Margin="0,4,0,4">
+                <ui:SymbolIcon Symbol="TargetArrow16"
+                      FontSize="16"
+                      Margin="0,0,8,0"
+                      Foreground="#FFA4C2F1"/>
+                <ui:ToggleSwitch Content="ADS Only"
+                        IsChecked="{Binding Settings.UseAdsOnly}"
+                        Foreground="#FFA4C2F1" Background="#FF0062FF"/>
+            </DockPanel>
+        </StackPanel>
+
+
+        <!-- Buttons -->
+        <StackPanel Grid.Row="7" 
+            Orientation="Horizontal" 
+            HorizontalAlignment="Left"
+            Margin="6,20,0,20" Grid.ColumnSpan="2">
+            <!-- Start Button -->
+            <ui:Button Command="{Binding StartCommand}"
+               IsEnabled="{Binding CanStart}"
+               Margin="0,0,8,0"
+               Width="120"
+               Height="36"
+               Appearance="{Binding IsRunning, Converter={StaticResource BoolToAppearanceConverter}}"
+                       MouseOverBackground="#FF1E4C77" PressedBackground="#12FFFFFF">
+                <ui:Button.Background>
+                    <SolidColorBrush Color="#FF095EB5" Opacity="0.7"/>
+                </ui:Button.Background>
+                <DockPanel HorizontalAlignment="Center" 
+                   VerticalAlignment="Center"
+                   LastChildFill="False">
+                    <ui:SymbolIcon Symbol="Play16"
+                          DockPanel.Dock="Left"
+                          Margin="0,0,8,0"/>
+                    <TextBlock Text="Start"
+                      DockPanel.Dock="Right"
+                      VerticalAlignment="Center"/>
+                </DockPanel>
+            </ui:Button>
+
+            <!-- Stop Button -->
+            <ui:Button Command="{Binding StopCommand}"
+               IsEnabled="{Binding IsRunning}"
+               Width="120"
+               Height="36"
+               Appearance="Secondary" Background="#FF4B2A2A">
+                <DockPanel HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   LastChildFill="False">
+                    <ui:SymbolIcon Symbol="Stop16"
+                          DockPanel.Dock="Left"
+                          Margin="0,0,8,0"/>
+                    <TextBlock Text="Stop"
+                      DockPanel.Dock="Right"
+                      VerticalAlignment="Center"/>
+                </DockPanel>
+            </ui:Button>
+        </StackPanel>
+        <!-- Credits -->
+        <!-- Credits -->
+        <TextBlock Grid.Row="8" 
+           HorizontalAlignment="Left"
+           Margin="81,10,0,0" Grid.ColumnSpan="2">
+           <Run Text="made by" Foreground="#FFA4C2F1"/>
+             <Run Text="zytka" Foreground="#FFA4C2F1"/>
+        </TextBlock>
+
+        <ContentPresenter x:Name="RootContentDialogPresenter" 
+                 Grid.RowSpan="{Binding RowDefinitions.Count, RelativeSource={RelativeSource AncestorType=Grid}}" 
+                 Margin="0,6,0,-6" 
+                 Grid.ColumnSpan="2" />
+    </Grid>
+</ui:FluentWindow>

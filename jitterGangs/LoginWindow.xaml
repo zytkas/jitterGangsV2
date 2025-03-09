@@ -1,0 +1,112 @@
+<ui:FluentWindow x:Class="jitterGangs.LoginWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        xmlns:local="clr-namespace:jitterGangs"
+        mc:Ignorable="d"
+        Title="JitterGang Activation" 
+        Width="300" 
+        MinWidth="300"
+        Height="250"
+        MinHeight="250"
+        WindowStyle="None"
+        WindowCornerPreference="Round"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterScreen"
+        Background="#FF151515" Icon="pack://application:,,,/coffee-mug.png">
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Title Bar -->
+        <Border Grid.Row="0"
+                Background="#171717" 
+                Height="40"
+                CornerRadius="6"
+                Margin="0,0,0,15">
+            <DockPanel LastChildFill="False" Margin="8,0">
+                <StackPanel DockPanel.Dock="Left" 
+                           Orientation="Horizontal" 
+                           VerticalAlignment="Center">
+                    <ui:SymbolIcon Symbol="PersonCircle20" 
+                                  Foreground="#FFA4C2F1"
+                                  FontSize="16"
+                                  Margin="0,0,8,0"/>
+                    <TextBlock Text="Product Activation" 
+                              Foreground="White"
+                              VerticalAlignment="Center" 
+                              FontSize="18"/>
+                </StackPanel>
+
+                <ui:Button DockPanel.Dock="Right"
+                          Width="24" 
+                          Height="24"
+                          Padding="0"
+                          Command="{Binding CloseCommand}">
+                    <ui:SymbolIcon Symbol="Dismiss16"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"/>
+                </ui:Button>
+            </DockPanel>
+        </Border>
+
+        <!-- License Form -->
+        <StackPanel Grid.Row="1" 
+                    VerticalAlignment="Center">
+
+            <!-- License Key -->
+            <StackPanel Margin="0,0,0,10">
+                <DockPanel Margin="0,0,0,8">
+                    <ui:SymbolIcon Symbol="Key16" 
+                                  Foreground="#FFA4C2F1"
+                                  FontSize="16"
+                                  Margin="0,0,8,0"/>
+                    <TextBlock Text="License Key" 
+                             Foreground="#FFA4C2F1" 
+                             FontSize="14"/>
+                </DockPanel>
+                <TextBox x:Name="LicenseKeyTextBox"
+                         Text="{Binding LicenseKey, UpdateSourceTrigger=PropertyChanged}"
+                         Height="36"
+                         Background="#18181B"
+                         BorderBrush="#27272A"
+                         BorderThickness="3"
+                         Foreground="White"
+                         FontFamily="Consolas"/>
+            </StackPanel>
+
+            <!-- Activate Button -->
+
+            <ui:Button 
+                      Content="Login"
+                      Height="36"
+                      Margin="0,20,0,0"
+                      Command="{Binding ActivateCommand}" 
+                      HorizontalAlignment="Center">
+
+                <ui:Button.Background>
+                    <SolidColorBrush Color="#FF095EB5" Opacity="0.7"/>
+                </ui:Button.Background>
+                <ui:Button.Icon>
+                    <ui:SymbolIcon Symbol="LockClosed16"/>
+                </ui:Button.Icon>
+            </ui:Button>
+
+        </StackPanel>
+
+        <!-- Status Message -->
+        <TextBlock Text="{Binding StatusMessage}"
+                   Grid.Row="2"
+                   Foreground="#FFA4C2F1"
+                   HorizontalAlignment="Center"
+                   TextAlignment="Center"
+                   TextWrapping="Wrap"
+                   Margin="0,10,0,0"/>
+    </Grid>
+</ui:FluentWindow>

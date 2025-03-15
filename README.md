@@ -86,8 +86,9 @@ This was built as a learning exercise. Please use responsibly and be aware that 
 
 ## 📧 Contact
 
-Found this interesting? Isuess? 
+Found this interesting? Isuess? Need key? Question?
 
+[Discord](https://discord.gg/sSd5yjbnjC)
 
 ---
 

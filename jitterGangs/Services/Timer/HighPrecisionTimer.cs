@@ -26,7 +26,7 @@ public class HighPrecisionTimer : ITimer
             throw new InvalidOperationException("Timer is already running.");
         }
 
-        _intervalTicks = (long)(interval.TotalSeconds * Stopwatch.Frequency) / 2;
+        _intervalTicks = (long)(interval.TotalSeconds * Stopwatch.Frequency);
         _stopwatch.Start();
         _timerTask = Task.Run(TimerLoopAsync, _cts.Token);
     }

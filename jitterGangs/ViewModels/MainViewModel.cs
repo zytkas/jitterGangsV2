@@ -2,6 +2,7 @@
 using CommunityToolkit.Mvvm.Input;
 using JitterGang.Models;
 using JitterGang.Services;
+using JitterGang.Services.Input;
 using JitterGang.Services.Input.Controllers;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -29,7 +30,6 @@ public partial class MainViewModel : ObservableObject
     {
         _settingsService = settingsService;
         _jitterService = jitterService;
-
         _processes = new ObservableCollection<string>();
         _settings = new JitterSettings();
 
@@ -100,7 +100,6 @@ public partial class MainViewModel : ObservableObject
             if (!IsRunning)
             {
                 ValidateSettings();
-
                 int keyCode = ConvertKeyNameToCode(Settings.ToggleKey);
                 _jitterService.SetDelay(Settings.Delay);
                 _jitterService.SetToggleKey(keyCode);
@@ -150,6 +149,7 @@ public partial class MainViewModel : ObservableObject
             }
 
             bool isControllerAvailable = ControllerDetector.IsAnyControllerConnected();
+
             if (!isControllerAvailable)
             {
                 Settings.UseController = false;

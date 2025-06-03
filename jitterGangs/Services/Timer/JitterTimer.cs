@@ -15,7 +15,7 @@ public class JitterTimer : ITimer
     public void Start(TimeSpan interval)
     {
         Stop();
-        _timer = new HighPrecisionTimer(_jitterService.HandleShakeTimerTick); // Изменено здесь - передаем только callback
+        _timer = new HighPrecisionTimer(_jitterService.HandleShakeTimerTick); 
         _timer.Start(interval);
     }
 

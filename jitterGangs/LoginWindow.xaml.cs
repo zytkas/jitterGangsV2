@@ -23,10 +23,7 @@ namespace jitterGangs
             }
             catch (Exception ex)
             {
-                System.Windows.Forms.MessageBox.Show("Failed to initialize application. Error: " + ex.Message,
-                               "Initialization Error",
-                               System.Windows.Forms.MessageBoxButtons.OK,
-                               System.Windows.Forms.MessageBoxIcon.Error);
+
                 Application.Current.Shutdown();
             }
         }

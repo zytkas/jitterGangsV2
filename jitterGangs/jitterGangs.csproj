@@ -9,6 +9,7 @@
     <StartupObject></StartupObject>
     <ApplicationIcon>coffee-mug.ico</ApplicationIcon>
     <SupportedOSPlatformVersion>8.0</SupportedOSPlatformVersion>
+    <Platforms>AnyCPU;x64</Platforms>
   </PropertyGroup>
 	
   <ItemGroup>
@@ -26,13 +27,15 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="InputInterceptor" Version="2.2.1" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.2" />
     <PackageReference Include="Nefarius.ViGEm.Client" Version="1.21.256" />
-    <PackageReference Include="ReaLTaiizor" Version="3.8.1.1" />
     <PackageReference Include="SharpDX.DirectInput" Version="4.2.0" />
     <PackageReference Include="SharpDX.XInput" Version="4.2.0" />
-    <PackageReference Include="System.Management" Version="9.0.1" />
-    <PackageReference Include="WPF-UI" Version="3.0.5" />
+    <PackageReference Include="System.Management" Version="9.0.6" />
+    <PackageReference Include="System.ServiceProcess.ServiceController" Version="9.0.6" />
+    <PackageReference Include="WPF-UI" Version="4.0.3" />
+    <PackageReference Include="WPF-UI.Abstractions" Version="4.0.3" />
   </ItemGroup>
 
   <ItemGroup>    <Resource Include="coffee-mug.png" />

@@ -1,7 +1,7 @@
 ﻿<Application x:Class="jitterGangs.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="clr-namespace:jitterGangs"
+             xmlns:local="clr-namespace:jitterGangs.Convertors"    
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
     <Application.Resources>
         <ResourceDictionary>
@@ -9,6 +9,13 @@
                 <ui:ThemesDictionary Theme="Dark" />
                 <ui:ControlsDictionary />
             </ResourceDictionary.MergedDictionaries>
+
+            <local:BoolToControlAppearanceConverter x:Key="BoolToAppearanceConverter"/>
+            <local:BoolToSymbolConverter x:Key="BoolToSymbolConverter"/>
+            <local:BoolToColorConverter x:Key="BoolToColorConverter"/>
+            <local:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
+            <local:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+            
             <BitmapImage x:Key="AppIcon" UriSource="pack://application:,,,/coffee-mug.png"/>
         </ResourceDictionary>
     </Application.Resources>

@@ -1,8 +1,6 @@
-﻿using JitterGang.libs;
-
-namespace JitterGang.Services.Jitter;
+﻿namespace JitterGang.Services.Jitter;
 
 public abstract class BaseJitter
 {
-    public abstract void ApplyJitter(ref INPUT input);
+    public abstract void ApplyJitter(ref int deltaX, ref int deltaY);
 }

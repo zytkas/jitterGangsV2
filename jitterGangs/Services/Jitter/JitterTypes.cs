@@ -1,6 +1,4 @@
-﻿using JitterGang.libs;
-
-namespace JitterGang.Services.Jitter;
+﻿namespace JitterGang.Services.Jitter;
 
 public class LeftRightJitter : BaseJitter
 {
@@ -16,11 +14,11 @@ public class LeftRightJitter : BaseJitter
         };
     }
 
-    public override void ApplyJitter(ref INPUT input)
+    public override void ApplyJitter(ref int deltaX, ref int deltaY)
     {
         var point = _points[_currentPoint];
-        input.Mi.Dx += point.x;
-        input.Mi.Dy += point.y;
+        deltaX += point.x;
+        deltaY += point.y;
 
         // Switch to the next position
         _currentPoint = (_currentPoint + 1) % _points.Length;
@@ -38,10 +36,10 @@ public class CircleJitter : BaseJitter
         _radius = radius;
     }
 
-    public override void ApplyJitter(ref INPUT input)
+    public override void ApplyJitter(ref int deltaX, ref int deltaY)
     {
-        input.Mi.Dx += (int)(_radius * Math.Cos(_angle));
-        input.Mi.Dy += (int)(_radius * Math.Sin(_angle));
+        deltaX += (int)(_radius * Math.Cos(_angle));
+        deltaY += (int)(_radius * Math.Sin(_angle));
 
         _angle += AngleIncrement;
         if (_angle >= 2 * Math.PI)
@@ -71,14 +69,14 @@ public class SmoothLeftRightJitter : BaseJitter
         _acceleration = 0.0;
     }
 
-    public override void ApplyJitter(ref INPUT input)
+    public override void ApplyJitter(ref int deltaX, ref int deltaY)
     {
         // Increase acceleration up to a maximum of 1.0
         _currentMultiplier = Math.Min(1.0, _currentMultiplier + AccelerationRate);
 
         var point = _points[_currentPoint];
-        input.Mi.Dx += (int)(point.x * _currentMultiplier);
-        input.Mi.Dy += (int)(point.y * _currentMultiplier);
+        deltaX += (int)(point.x * _currentMultiplier);
+        deltaY += (int)(point.y * _currentMultiplier);
 
         // Switch between Up-Right and Down-Left
         _currentPoint = (_currentPoint + 1) % _points.Length;
@@ -97,7 +95,7 @@ public class PullDownJitter : BaseJitter
         _strength = strength;
     }
 
-    public override void ApplyJitter(ref INPUT input)
+    public override void ApplyJitter(ref int deltaX, ref int deltaY)
     {
         // Calculate movement this tick
         _accumulatedMovement += _strength * _baseStrength;
@@ -106,7 +104,7 @@ public class PullDownJitter : BaseJitter
         if (_accumulatedMovement >= 1.0)
         {
             int pixelsToMove = (int)Math.Floor(_accumulatedMovement);
-            input.Mi.Dy += pixelsToMove;
+            deltaY += pixelsToMove;
             _accumulatedMovement -= pixelsToMove;
         }
     }

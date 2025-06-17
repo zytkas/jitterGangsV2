@@ -21,7 +21,7 @@ namespace jitterGangs
             services.AddSingleton<IJitterService, JitterService>();
             services.AddSingleton<IFirebaseService, FirebaseService>();
             services.AddSingleton<IDialogService, DialogService>();
-
+            services.AddSingleton<IInputInterceptorService, InputInterceptorService>();
             // Register ViewModels
             services.AddTransient<LoginViewModel>();
             services.AddTransient<MainViewModel>();

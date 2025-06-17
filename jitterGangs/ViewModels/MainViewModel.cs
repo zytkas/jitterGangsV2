@@ -14,22 +14,35 @@ public partial class MainViewModel : ObservableObject
 {
     private readonly ISettingsService _settingsService;
     private readonly IJitterService _jitterService;
+    private readonly IInputInterceptorService _inputInterceptorService;
     private bool _isInitialized;
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanStart))]
     private bool _isRunning;
-    public bool CanStart => !IsRunning;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanStart))] 
+    private bool _isInputSystemReady;
+
+    [ObservableProperty]
+    private string _inputSystemStatus = "Checking...";
+
+    public bool CanStart => !IsRunning && IsInputSystemReady;
     public IJitterService JitterService => _jitterService;
+
     [ObservableProperty]
     private ObservableCollection<string> _processes;
 
     [ObservableProperty]
     private JitterSettings _settings;
 
-    public MainViewModel(ISettingsService settingsService, IJitterService jitterService)
+    public MainViewModel(ISettingsService settingsService, IJitterService jitterService, IInputInterceptorService inputInterceptorService)
     {
         _settingsService = settingsService;
         _jitterService = jitterService;
+        _inputInterceptorService = inputInterceptorService;
+
         _processes = new ObservableCollection<string>();
         _settings = new JitterSettings();
 
@@ -91,15 +104,84 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
+    [RelayCommand]
+    private void TestBinding()
+    {
+        Logger.Log("=== Testing Property Binding ===");
+
+        // Переключаем состояние для тестирования
+        bool oldValue = IsInputSystemReady;
+
+        IsInputSystemReady = false;
+        Logger.Log($"Set IsInputSystemReady to false. CanStart: {CanStart}");
+
+        Thread.Sleep(100);
+
+        IsInputSystemReady = true;
+        Logger.Log($"Set IsInputSystemReady to true. CanStart: {CanStart}");
+
+        Thread.Sleep(100);
+
+        IsInputSystemReady = oldValue;
+        Logger.Log($"Restored IsInputSystemReady to {oldValue}. CanStart: {CanStart}");
+
+        Logger.Log("=== Test Complete ===");
+    }
+
+
+    [RelayCommand]
+    private async Task UninstallDriver()
+    {
+        try
+        {
+            var result = System.Windows.MessageBox.Show(
+                "Are you sure you want to uninstall the InputInterceptor driver?\n\nThis will require a computer restart and the application will no longer work until the driver is reinstalled.",
+                "Confirm Driver Uninstall",
+                System.Windows.MessageBoxButton.YesNo,
+                System.Windows.MessageBoxImage.Warning);
+
+            if (result != System.Windows.MessageBoxResult.Yes)
+                return;
+
+            InputSystemStatus = "Uninstalling driver...";
+
+            bool uninstalled = await _inputInterceptorService.UninstallDriverAsync();
+            if (uninstalled)
+            {
+                InputSystemStatus = "Driver uninstalled. Restart required.";
+                IsInputSystemReady = false;
+
+                System.Windows.MessageBox.Show(
+                    "InputInterceptor driver has been uninstalled successfully.\n\nPlease restart your computer to complete the removal.",
+                    "Driver Uninstalled",
+                    System.Windows.MessageBoxButton.OK,
+                    System.Windows.MessageBoxImage.Information);
+            }
+            else
+            {
+                InputSystemStatus = "Driver uninstallation failed";
+                throw new InvalidOperationException(
+                    "Failed to uninstall InputInterceptor driver. " +
+                    "Please ensure the application is running as administrator.");
+            }
+        }
+        catch (Exception ex)
+        {
+            InputSystemStatus = $"Uninstall error: {ex.Message}";
+            Logger.Log($"Driver uninstallation error: {ex.Message}");
+            throw;
+        }
+    }
 
     [RelayCommand]
     private async Task Start(CancellationToken token = default)
     {
         try
         {
-            if (!IsRunning)
+            if (!IsRunning && IsInputSystemReady)
             {
                 ValidateSettings();
+
                 int keyCode = ConvertKeyNameToCode(Settings.ToggleKey);
                 _jitterService.SetDelay(Settings.Delay);
                 _jitterService.SetToggleKey(keyCode);
@@ -112,7 +194,7 @@ public partial class MainViewModel : ObservableObject
 
                 _jitterService.Start();
                 IsRunning = true;
-                Logger.Log("Jitter service started"); // Отладка
+                Logger.Log("Jitter service started with InputInterceptor");
                 await SaveSettingsAsync();
             }
         }
@@ -140,16 +222,22 @@ public partial class MainViewModel : ObservableObject
 
         try
         {
-            // Сначала инициализируем InputInterceptor
-            var loadedSettings = await _settingsService.LoadSettingsAsync();
+            Logger.Log("=== Starting MainViewModel Initialization ===");
 
+            // Сначала инициализируем InputInterceptor
+            await InitializeInputSystemAsync();
+            Logger.Log($"After InputInterceptor init: IsInputSystemReady={IsInputSystemReady}, CanStart={CanStart}");
+
+            var loadedSettings = await _settingsService.LoadSettingsAsync();
 
             if (loadedSettings != null)
             {
                 Settings = loadedSettings;
+                Logger.Log("Settings loaded successfully");
             }
 
             bool isControllerAvailable = ControllerDetector.IsAnyControllerConnected();
+            Logger.Log($"Controller available: {isControllerAvailable}");
 
             if (!isControllerAvailable)
             {
@@ -170,10 +258,120 @@ public partial class MainViewModel : ObservableObject
             await RefreshProcessList();
 
             _isInitialized = true;
+            Logger.Log($"=== MainViewModel Initialization Complete === IsInputSystemReady={IsInputSystemReady}, CanStart={CanStart}");
         }
         catch (Exception ex)
         {
             Logger.Log($"Error in InitializeAsync: {ex.Message}");
+            throw;
+        }
+    }
+
+    private async Task InitializeInputSystemAsync()
+    {
+        try
+        {
+            InputSystemStatus = "Checking InputInterceptor driver...";
+            Logger.Log("Starting InputInterceptor initialization...");
+
+            if (!_inputInterceptorService.IsDriverInstalled)
+            {
+                InputSystemStatus = "Driver not installed. Install required.";
+                IsInputSystemReady = false;
+                Logger.Log("InputInterceptor driver is not installed");
+
+                throw new InvalidOperationException(
+                    "InputInterceptor driver is not installed. " +
+                    "Please run the application as administrator to install the driver, " +
+                    "then restart your computer.");
+            }
+
+            InputSystemStatus = "Initializing InputInterceptor...";
+            Logger.Log("Driver is installed, initializing...");
+
+            bool initialized = await _inputInterceptorService.InitializeAsync();
+            if (!initialized)
+            {
+                InputSystemStatus = "Failed to initialize InputInterceptor";
+                IsInputSystemReady = false;
+                Logger.Log("Failed to initialize InputInterceptor");
+
+                throw new InvalidOperationException(
+                    "Failed to initialize InputInterceptor. " +
+                    "Please ensure the driver is properly installed and restart the application.");
+            }
+
+            InputSystemStatus = "InputInterceptor ready";
+            IsInputSystemReady = true;
+            Logger.Log($"InputInterceptor successfully initialized. IsInputSystemReady: {IsInputSystemReady}, CanStart: {CanStart}");
+
+            // Принудительно обновляем привязки
+            OnPropertyChanged(nameof(IsInputSystemReady));
+            OnPropertyChanged(nameof(CanStart));
+        }
+        catch (Exception ex)
+        {
+            InputSystemStatus = $"Error: {ex.Message}";
+            IsInputSystemReady = false;
+            Logger.Log($"InputInterceptor initialization failed: {ex.Message}");
+
+            // Принудительно обновляем привязки даже при ошибке
+            OnPropertyChanged(nameof(IsInputSystemReady));
+            OnPropertyChanged(nameof(CanStart));
+            throw;
+        }
+    }
+
+    [RelayCommand]
+    private async Task InstallDriver()
+    {
+        try
+        {
+            InputSystemStatus = "Installing driver...";
+            Logger.Log("Starting driver installation...");
+
+            bool result = await _inputInterceptorService.InstallDriverAsync();
+            if (result)
+            {
+                InputSystemStatus = "Driver installed. Restart required.";
+                IsInputSystemReady = false; // Остается false до перезагрузки
+                Logger.Log("Driver installation successful");
+
+                // Принудительно обновляем привязки
+                OnPropertyChanged(nameof(IsInputSystemReady));
+                OnPropertyChanged(nameof(CanStart));
+
+                // Показываем сообщение пользователю
+                System.Windows.MessageBox.Show(
+                    "InputInterceptor driver installed successfully.\n\nPlease restart your computer and the application.",
+                    "Installation Complete",
+                    System.Windows.MessageBoxButton.OK,
+                    System.Windows.MessageBoxImage.Information);
+            }
+            else
+            {
+                InputSystemStatus = "Driver installation failed";
+                IsInputSystemReady = false;
+                Logger.Log("Driver installation failed");
+
+                // Принудительно обновляем привязки
+                OnPropertyChanged(nameof(IsInputSystemReady));
+                OnPropertyChanged(nameof(CanStart));
+
+                throw new InvalidOperationException(
+                    "Failed to install InputInterceptor driver. " +
+                    "Please ensure the application is running as administrator.");
+            }
+        }
+        catch (Exception ex)
+        {
+            InputSystemStatus = $"Installation error: {ex.Message}";
+            IsInputSystemReady = false;
+            Logger.Log($"Driver installation error: {ex.Message}");
+
+            // Принудительно обновляем привязки
+            OnPropertyChanged(nameof(IsInputSystemReady));
+            OnPropertyChanged(nameof(CanStart));
             throw;
         }
     }
@@ -242,7 +440,7 @@ public partial class MainViewModel : ObservableObject
             });
 
             // Создаем новую коллекцию вместо очистки существующей
-            Processes = new ObservableCollection<string>(processList); // Это вызовет уведомление об изменении
+            Processes = new ObservableCollection<string>(processList);
 
             // Сохраняем текущий выбранный процесс
             if (!string.IsNullOrEmpty(Settings.SelectedProcess) &&
@@ -332,7 +530,6 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
-
     [RelayCommand]
     private async Task ToggleController(bool useController)
     {
@@ -340,11 +537,9 @@ public partial class MainViewModel : ObservableObject
         {
             if (useController)
             {
-                // This is the critical check that should throw when no controller is found
                 if (!ControllerDetector.IsAnyControllerConnected())
                 {
                     Settings.UseController = false;
-                    // Make sure this exception is thrown and not suppressed
                     throw new InvalidOperationException("Connect controller to use this feature");
                 }
 
@@ -360,20 +555,18 @@ public partial class MainViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            // Important: Always reset this to false when an error occurs
             Settings.UseController = false;
             await SaveSettingsAsync();
-
-            // Critical: Re-throw to allow the View to handle and display the dialog
             throw;
         }
     }
 
     public IEnumerable<string> AvailableKeys { get; } = new[]
-{
-    "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12",
-    "X1", "X2", "Shift", "Capslock"
-};
+    {
+        "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12",
+        "X1", "X2", "Shift", "Capslock"
+    };
+
     public void Cleanup()
     {
         _jitterService.Stop();

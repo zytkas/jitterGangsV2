@@ -1,9 +1,9 @@
 ﻿using JitterGang.libs;
+using JitterGang.Services.Input;
 using JitterGang.Services.Input.Controllers;
 using JitterGang.Services.Jitter;
 using JitterGang.Services.Timer;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 
 namespace JitterGang.Services;
 
@@ -16,6 +16,7 @@ public class JitterService : IJitterService
     private string? _selectedProcessName;
     private bool _isJitterActivated;
     private readonly JitterTimer? _jitterTimer;
+    private readonly IInputInterceptorService _inputInterceptorService;
 
     private LeftRightJitter? _leftRightJitter;
     private SmoothLeftRightJitter? _smoothLeftRightJitter;
@@ -30,12 +31,11 @@ public class JitterService : IJitterService
     public bool UseAdsOnly { get; set; }
     public bool IsRunning => _jitterTimer?.IsRunning ?? false;
 
-    public static object Instance { get; internal set; }
-
     public void SetToggleKey(int keyCode) { _toggleKey = keyCode; }
 
-    public JitterService()
+    public JitterService(IInputInterceptorService inputInterceptorService)
     {
+        _inputInterceptorService = inputInterceptorService ?? throw new ArgumentNullException(nameof(inputInterceptorService));
         _delay = 1;
         Strength = 0;
         PullDownStrength = 0;
@@ -43,6 +43,39 @@ public class JitterService : IJitterService
         IsCircleJitterActive = false;
         _jitterTimer = new JitterTimer(this);
         UpdateJitters();
+    }
+
+    public async Task<bool> InitializeInputSystemAsync()
+    {
+        try
+        {
+            if (!_inputInterceptorService.IsDriverInstalled)
+            {
+                Logger.Log("InputInterceptor driver not installed. Attempting to install...");
+
+                bool installed = await _inputInterceptorService.InstallDriverAsync();
+                if (!installed)
+                {
+                    throw new InvalidOperationException("Failed to install InputInterceptor driver. Please run as administrator and restart the application.");
+                }
+
+                throw new InvalidOperationException("InputInterceptor driver installed successfully. Please restart your computer and the application.");
+            }
+
+            bool initialized = await _inputInterceptorService.InitializeAsync();
+            if (!initialized)
+            {
+                throw new InvalidOperationException("Failed to initialize InputInterceptor. Please ensure the driver is properly installed.");
+            }
+
+            Logger.Log("InputInterceptor initialized successfully");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Logger.Log($"Input system initialization failed: {ex.Message}");
+            throw;
+        }
     }
 
     public void Start()
@@ -135,7 +168,6 @@ public class JitterService : IJitterService
     {
         var isToggleKeyDown = (NativeMethods.GetAsyncKeyState(_toggleKey) & 0x8000) != 0;
 
-
         if (isToggleKeyDown && !_toggleKeyPressed)
         {
             _isJitterActivated = !_isJitterActivated;
@@ -175,17 +207,16 @@ public class JitterService : IJitterService
                     shouldApplyJitter = _controllerHandler.IsRightTriggerPressed;
                 }
             }
-            else // Only check mouse input if not using controller
+            else 
             {
                 if (UseAdsOnly)
                 {
-                    bool isLeftMouseDown = (NativeMethods.GetAsyncKeyState(Win32Constants.VK_LBUTTON) & 0x8000) != 0;
-                    bool isRightMouseDown = (NativeMethods.GetAsyncKeyState(Win32Constants.VK_RBUTTON) & 0x8000) != 0;
-                    shouldApplyJitter = isLeftMouseDown && isRightMouseDown;
+                    shouldApplyJitter = _inputInterceptorService.IsLeftMouseButtonPressed &&
+                                      _inputInterceptorService.IsRightMouseButtonPressed;
                 }
                 else
                 {
-                    shouldApplyJitter = (NativeMethods.GetAsyncKeyState(Win32Constants.VK_LBUTTON) & 0x8000) != 0;
+                    shouldApplyJitter = _inputInterceptorService.IsLeftMouseButtonPressed;
                 }
             }
         }
@@ -202,32 +233,50 @@ public class JitterService : IJitterService
 
     private void ApplyJitter()
     {
-        for (int i = 0; i < 15; i++)
+        if (!_inputInterceptorService.CanSimulateInput)
         {
-            var inputs = new INPUT[1];
-            inputs[0].Type = Win32Constants.INPUT_MOUSE;
-            inputs[0].Mi.DwFlags = Win32Constants.MOUSEEVENTF_MOVE;
+            Logger.Log("Cannot simulate input - InputInterceptor not ready");
+            return;
+        }
 
-            _leftRightJitter?.ApplyJitter(ref inputs[0]);
-
-            if (UseController)
+        try
+        {
+            for (int i = 0; i < 15; i++)
             {
-                _smoothLeftRightJitter?.ApplyJitter(ref inputs[0]);
-            }
+                int totalDeltaX = 0;
+                int totalDeltaY = 0;
 
-            if (IsCircleJitterActive)
-            {
-                _circleJitter?.ApplyJitter(ref inputs[0]);
-            }
+                // Применяем различные типы джиттера
+                _leftRightJitter?.ApplyJitter(ref totalDeltaX, ref totalDeltaY);
 
-            _pullDownJitter?.ApplyJitter(ref inputs[0]);
+                if (UseController)
+                {
+                    _smoothLeftRightJitter?.ApplyJitter(ref totalDeltaX, ref totalDeltaY);
+                }
 
-            var result = NativeMethods.SendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)));
-            if (result != 1)
-            {
-                var error = Marshal.GetLastWin32Error();
-                Logger.Log($"SendInput failed with error: {error}");
+                if (IsCircleJitterActive)
+                {
+                    _circleJitter?.ApplyJitter(ref totalDeltaX, ref totalDeltaY);
+                }
+
+                _pullDownJitter?.ApplyJitter(ref totalDeltaX, ref totalDeltaY);
+
+                // Отправляем движение через InputInterceptor
+                if (totalDeltaX != 0 || totalDeltaY != 0)
+                {
+                    
+                    bool result = _inputInterceptorService.MoveCursorBy(totalDeltaX, totalDeltaY);
+                    Logger.Log("Result " + result);
+                    if (!result)
+                    {
+                        Logger.Log("Failed to send mouse movement via InputInterceptor");
+                    }
+                }
             }
+        }
+        catch (Exception ex)
+        {
+            Logger.Log($"Error applying jitter: {ex.Message}");
         }
     }
 
@@ -255,5 +304,6 @@ public class JitterService : IJitterService
     {
         _jitterTimer?.Dispose();
         _controllerHandler?.Dispose();
+        _inputInterceptorService?.Dispose();
     }
 }

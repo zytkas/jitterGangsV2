@@ -140,6 +140,7 @@ public partial class MainViewModel : ObservableObject
 
         try
         {
+            // Сначала инициализируем InputInterceptor
             var loadedSettings = await _settingsService.LoadSettingsAsync();
 
 

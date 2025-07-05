@@ -6,9 +6,9 @@
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml" 
         xmlns:local="clr-namespace:jitterGangs.Convertors"
         mc:Ignorable="d"
-        Title="JitterGang" Width="275" Height="762"
+        Title="JitterGang" Width="275" Height="650"
         MinWidth="300"       
-        MinHeight="650"
+        MinHeight="600"
         WindowStyle="None"
         WindowCornerPreference="Round"
         ResizeMode="NoResize"
@@ -24,8 +24,6 @@
         <!-- First, define your row definitions -->
         <Grid.RowDefinitions>
             <!-- Title bar -->
-            <RowDefinition Height="Auto"/>
-            <!-- Input System Status -->
             <RowDefinition Height="Auto"/>
             <!-- Process -->
             <RowDefinition Height="Auto"/>
@@ -89,63 +87,8 @@
             </DockPanel>
         </Border>
 
-        <!-- Input System Status -->
-        <StackPanel Grid.Row="1" Margin="0,2,0,15" Grid.ColumnSpan="2">
-            <DockPanel Margin="0,0,0,8">
-                <ui:SymbolIcon Symbol="Settings16" 
-                      FontSize="16" 
-                      Foreground="#FFA4C2F1"
-                      Margin="0,0,8,0"/>
-                <TextBlock Text="Input System" 
-                   Foreground="#FFA4C2F1" 
-                   FontSize="14"
-                   VerticalAlignment="Center"/>
-            </DockPanel>
-
-            <Border Background="#18181B"
-                    BorderBrush="#27272A"
-                    BorderThickness="3"
-                    CornerRadius="4"
-                    Padding="8"
-                    Margin="0,0,0,8">
-                <DockPanel>
-                    <ui:SymbolIcon DockPanel.Dock="Left"
-                                  Symbol="{Binding IsInputSystemReady, Converter={StaticResource BoolToSymbolConverter}}"
-                                  Foreground="{Binding IsInputSystemReady, Converter={StaticResource BoolToColorConverter}}"
-                                  FontSize="14"
-                                  Margin="0,0,8,0"
-                                  VerticalAlignment="Center"/>
-                    <TextBlock Text="{Binding InputSystemStatus}"
-                              Foreground="#FFA4C2F1"
-                              FontSize="12"
-                              TextWrapping="Wrap"
-                              VerticalAlignment="Center"/>
-                </DockPanel>
-            </Border>
-
-            <!-- Driver Management Buttons -->
-            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                <!-- Install Driver Button (only visible when driver not installed) -->
-                <ui:Button Content="Install Driver"
-                          Icon="Download16"
-                          Command="{Binding InstallDriverCommand}"
-                          Height="32"
-                          Margin="0,0,8,0"
-                          Visibility="{Binding IsInputSystemReady, Converter={StaticResource InverseBoolToVisibilityConverter}}"
-                          Background="#FF095EB5"/>
-
-                <!-- Uninstall Driver Button (only visible when driver is installed) -->
-                <ui:Button Content="Uninstall Driver"
-                          Icon="Delete16"
-                          Command="{Binding UninstallDriverCommand}"
-                          Height="32"
-                          Visibility="{Binding IsInputSystemReady, Converter={StaticResource BoolToVisibilityConverter}}"
-                          Background="#FF4B2A2A"/>
-            </StackPanel>
-        </StackPanel>
-
         <!-- Process Selection -->
-        <StackPanel Grid.Row="2" Margin="0,2,0,22" Grid.ColumnSpan="2">
+        <StackPanel Grid.Row="1" Margin="0,2,0,22" Grid.ColumnSpan="2">
             <!-- Label with icon -->
             <DockPanel Margin="0,0,0,8">
                 <ui:SymbolIcon Symbol="Target16" 
@@ -168,7 +111,7 @@
         </StackPanel>
 
         <!-- Strength -->
-        <StackPanel Grid.Row="3" Margin="0,0,0,15" Grid.ColumnSpan="2">
+        <StackPanel Grid.Row="2" Margin="0,0,0,15" Grid.ColumnSpan="2">
             <DockPanel Margin="0,0,0,8">
                 <ui:SymbolIcon Symbol="Flash16" 
                       Foreground="#FFA4C2F1"
@@ -198,7 +141,7 @@
         </StackPanel>
 
         <!-- Delay -->
-        <StackPanel Grid.Row="4" Margin="0,0,0,15" Grid.ColumnSpan="2">
+        <StackPanel Grid.Row="3" Margin="0,0,0,15" Grid.ColumnSpan="2">
             <DockPanel Margin="0,0,0,8">
                 <ui:SymbolIcon Symbol="Clock16" 
                       Foreground="#FFA4C2F1"
@@ -228,7 +171,7 @@
         </StackPanel>
 
         <!-- Pull Down -->
-        <StackPanel Grid.Row="5" Margin="0,0,0,15" Grid.ColumnSpan="2">
+        <StackPanel Grid.Row="4" Margin="0,0,0,15" Grid.ColumnSpan="2">
             <DockPanel Margin="0,0,0,8">
                 <ui:SymbolIcon Symbol="ArrowDown16" 
                       Foreground="#FFA4C2F1"
@@ -258,7 +201,7 @@
         </StackPanel>
 
         <!-- Toggle Key -->
-        <StackPanel Grid.Row="6" Margin="0,0,0,15" Grid.ColumnSpan="2">
+        <StackPanel Grid.Row="5" Margin="0,0,0,15" Grid.ColumnSpan="2">
             <DockPanel Margin="0,0,0,8">
                 <ui:SymbolIcon Symbol="Power20" 
                       Foreground="#FFA4C2F1"
@@ -277,7 +220,7 @@
         </StackPanel>
 
         <!-- Checkboxes section -->
-        <StackPanel Grid.Row="7" Margin="0,0,0,15" Grid.ColumnSpan="2">
+        <StackPanel Grid.Row="6" Margin="0,0,0,15" Grid.ColumnSpan="2">
             <!-- Circle Jitter -->
             <DockPanel Margin="0,4,0,4">
                 <ui:SymbolIcon Symbol="Target16"
@@ -315,7 +258,7 @@
 
 
         <!-- Buttons -->
-        <StackPanel Grid.Row="8" 
+        <StackPanel Grid.Row="7" 
             Orientation="Horizontal" 
             HorizontalAlignment="Left"
             Margin="6,20,0,20" Grid.ColumnSpan="2">
@@ -361,7 +304,7 @@
             </ui:Button>
         </StackPanel>
         <!-- Credits -->
-        <TextBlock Grid.Row="9" 
+        <TextBlock Grid.Row="8" 
            HorizontalAlignment="Left"
            Margin="81,10,0,0" Grid.ColumnSpan="2">
            <Run Text="made by" Foreground="#FFA4C2F1"/>

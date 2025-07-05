@@ -12,7 +12,6 @@ public interface IJitterService
     void SetDelay(int delayMs);
     void UpdateJitters();
     void SetToggleKey(int keyCode);
-    //
     void HandleShakeTimerTick();
 
     // Управление процессом

@@ -33,7 +33,7 @@ public struct RECT
     public int Bottom;
 }
 
-[StructLayout(LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Sequential)]
 public struct INPUT
 {
     public uint Type;

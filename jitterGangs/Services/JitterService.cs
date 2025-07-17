@@ -1,137 +1,175 @@
 ﻿using JitterGang.libs;
+using JitterGang.Services;
+using JitterGang.Services.Input;
 using JitterGang.Services.Input.Controllers;
 using JitterGang.Services.Jitter;
 using JitterGang.Services.Timer;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 
-namespace JitterGang.Services;
 
-public class JitterService : IJitterService
+public interface IJitterEffect
 {
-    private bool _jitterEnabled;
-    private int _toggleKey;
-    private int _delay;
-    private bool _toggleKeyPressed;
-    private string? _selectedProcessName;
-    private bool _isJitterActivated;
-    private readonly JitterTimer? _jitterTimer;
+    void ApplyJitter(ref int deltaX, ref int deltaY);
+}
 
-    private LeftRightJitter? _leftRightJitter;
-    private SmoothLeftRightJitter? _smoothLeftRightJitter;
-    private CircleJitter? _circleJitter;
-    private PullDownJitter? _pullDownJitter;
+
+public class JitterService : IJitterService, IDisposable
+{
+    private const int JitterApplyDelayMs = 1;
+
+    private readonly JitterTimer? _jitterTimer;
+    private readonly IMouseDriverService _mouseDriverService;
+    private readonly List<IJitterEffect> _jitterEffects = new();
+
+    private bool _jitterEnabled;
+    private bool _isJitterActivated;
+    private bool _toggleKeyPressed;
+    private bool _useMouseDriver;
+    private int _toggleKey;
+    private int _delay = 1;
+    private string? _selectedProcessName;
     private ControllerHandler? _controllerHandler;
 
-    public int Strength { get; private set; }
-    public int PullDownStrength { get; private set; }
-    public bool UseController { get; private set; }
-    public bool IsCircleJitterActive { get; set; }
-    public bool UseAdsOnly { get; set; }
-    public bool IsRunning => _jitterTimer?.IsRunning ?? false;
-
-    public void SetToggleKey(int keyCode) { _toggleKey = keyCode; }
-
-    public JitterService()
+    public JitterService(IMouseDriverService mouseDriverService)
     {
-        _delay = 1;
-        Strength = 0;
-        PullDownStrength = 0;
-        UseController = false;
-        IsCircleJitterActive = false;
+        _mouseDriverService = mouseDriverService;
         _jitterTimer = new JitterTimer(this);
-        UpdateJitters();
+
+        TryConnectToDriver();
+        RebuildJitterPipeline();
     }
 
+    #region Public Properties
+
+    /// <inheritdoc />
+    public int Strength { get; private set; }
+
+    /// <inheritdoc />
+    public int PullDownStrength { get; private set; }
+
+    /// <inheritdoc />
+    public bool UseController { get; private set; }
+
+    /// <inheritdoc />
+    public bool IsCircleJitterActive { get; set; }
+
+    /// <inheritdoc />
+    public bool UseAdsOnly { get; set; }
+
+    /// <inheritdoc />
+    public bool IsRunning => _jitterTimer?.IsRunning ?? false;
+
+    #endregion
+
+    #region Public Configuration Methods
+
+    /// <inheritdoc />
     public void Start()
     {
         _jitterEnabled = true;
-        if (_jitterTimer != null)
-        {
-            var interval = TimeSpan.FromMilliseconds(_delay);
-            _jitterTimer.Start(interval);
-        }
+        _jitterTimer?.Start(TimeSpan.FromMilliseconds(_delay));
     }
 
+    /// <inheritdoc />
     public void Stop()
     {
         _jitterEnabled = false;
-        _jitterTimer?.Stop();
         _isJitterActivated = false;
+        _jitterTimer?.Stop();
     }
 
+    /// <inheritdoc />
+    public void SetToggleKey(int keyCode) => _toggleKey = keyCode;
+
+    /// <inheritdoc />
+    public void SetDelay(int delayMs) => _delay = Math.Max(1, delayMs);
+
+    /// <inheritdoc />
+    public void SetSelectedProcess(string processName) => _selectedProcessName = processName;
+
+    /// <inheritdoc />
     public void UpdateStrength(int newStrength)
     {
-        if (Strength != newStrength)
-        {
-            Strength = newStrength;
-            UpdateJitters();
-        }
+        if (Strength == newStrength) return;
+        Strength = newStrength;
+        RebuildJitterPipeline();
     }
 
+    /// <inheritdoc />
     public void UpdatePullDownStrength(int newPullDownStrength)
     {
-        if (PullDownStrength != newPullDownStrength)
-        {
-            PullDownStrength = newPullDownStrength;
-            _pullDownJitter?.UpdateStrength(PullDownStrength);
-        }
+        if (PullDownStrength == newPullDownStrength) return;
+        PullDownStrength = newPullDownStrength;
+        RebuildJitterPipeline();
     }
 
     public void UpdateJitters()
     {
-        _leftRightJitter = new LeftRightJitter(Strength);
-        _smoothLeftRightJitter = new SmoothLeftRightJitter(Strength);
-        _circleJitter = new CircleJitter(Strength);
-        _pullDownJitter = new PullDownJitter(PullDownStrength);
+        RebuildJitterPipeline();
     }
 
-    public void SetDelay(int delayMs)
-    {
-        _delay = Math.Max(1, delayMs);
-    }
-
-    public void SetSelectedProcess(string processName)
-    {
-        _selectedProcessName = processName;
-    }
-
+    /// <inheritdoc />
     public void SetUseController(bool use)
     {
+        if (UseController == use) return;
+
         try
         {
+            _controllerHandler?.Dispose();
+            _controllerHandler = null;
+
             if (use)
             {
                 if (!ControllerDetector.IsAnyControllerConnected())
                 {
-                    UseController = false;
-                    throw new InvalidOperationException("Connect controller");
+                    throw new InvalidOperationException("Controller not connected.");
                 }
-
-                _controllerHandler?.Dispose();
                 _controllerHandler = (ControllerHandler)ControllerDetector.DetectController();
                 _controllerHandler.StartPolling();
-                UseController = true;
             }
-            else
-            {
-                _controllerHandler?.Dispose();
-                _controllerHandler = null;
-                UseController = false;
-            }
+            UseController = use;
+            RebuildJitterPipeline();
         }
-        catch (Exception ex)
+        catch
         {
             UseController = false;
-            _controllerHandler?.Dispose();
-            _controllerHandler = null;
+            RebuildJitterPipeline();
             throw;
         }
     }
 
+    #endregion
+
     public void HandleShakeTimerTick()
     {
-        var isToggleKeyDown = (NativeMethods.GetAsyncKeyState(_toggleKey) & 0x8000) != 0;
+        UpdateToggleState();
 
+        if (!_isJitterActivated || !_jitterEnabled || !IsTargetProcessActive())
+        {
+            return;
+        }
+
+        try
+        {
+            if (ShouldApplyJitter())
+            {
+                ApplyJitter();
+                Thread.Sleep(JitterApplyDelayMs);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Log($"Error during jitter tick: {ex.Message}");
+            throw new InvalidOperationException("Error processing jitter tick.", ex);
+        }
+    }
+
+    #region Private Helper Methods
+
+    private void UpdateToggleState()
+    {
+        bool isToggleKeyDown = (NativeMethods.GetAsyncKeyState(_toggleKey) & 0x8000) != 0;
         if (isToggleKeyDown && !_toggleKeyPressed)
         {
             _isJitterActivated = !_isJitterActivated;
@@ -141,132 +179,86 @@ public class JitterService : IJitterService
         {
             _toggleKeyPressed = false;
         }
+    }
 
-        if (!_isJitterActivated || !_jitterEnabled)
-        {
-            return;
-        }
+    private void RebuildJitterPipeline()
+    {
+        _jitterEffects.Clear();
+        _jitterEffects.Add(new LeftRightJitter(Strength));
+        if (UseController) _jitterEffects.Add(new SmoothLeftRightJitter(Strength));
+        if (IsCircleJitterActive) _jitterEffects.Add(new CircleJitter(Strength));
+        _jitterEffects.Add(new PullDownJitter(PullDownStrength));
+    }
 
-        if (!IsTargetProcessActive())
-        {
-            return;
-        }
 
-        bool shouldApplyJitter;
-        try
+    private bool ShouldApplyJitter()
+    {
+        bool primaryAction;
+        bool secondaryAction;
+
+        if (UseController)
         {
-            if (UseController)
+            if (_controllerHandler == null)
             {
-                if (_controllerHandler == null)
-                {
-                    throw new InvalidOperationException("Controller handler is not initialized.");
-                }
-
-                if (UseAdsOnly)
-                {
-                    shouldApplyJitter = _controllerHandler.IsRightTriggerPressed && _controllerHandler.IsLeftTriggerPressed;
-                }
-                else
-                {
-                    shouldApplyJitter = _controllerHandler.IsRightTriggerPressed;
-                }
+                throw new InvalidOperationException("Controller handler is not initialized.");
             }
-            else
-            {
-                // Используем Win32 API для проверки состояния мыши
-                bool isLeftMousePressed = (NativeMethods.GetAsyncKeyState(Win32Constants.VK_LBUTTON) & 0x8000) != 0;
-                bool isRightMousePressed = (NativeMethods.GetAsyncKeyState(Win32Constants.VK_RBUTTON) & 0x8000) != 0;
-
-                if (UseAdsOnly)
-                {
-                    shouldApplyJitter = isLeftMousePressed && isRightMousePressed;
-                }
-                else
-                {
-                    shouldApplyJitter = isLeftMousePressed;
-                }
-            }
+            primaryAction = _controllerHandler.IsRightTriggerPressed;
+            secondaryAction = _controllerHandler.IsLeftTriggerPressed;
         }
-        catch (Exception ex)
+        else
         {
-            throw new InvalidOperationException("Error checking input state", ex);
+            primaryAction = (NativeMethods.GetAsyncKeyState(Win32Constants.VK_LBUTTON) & 0x8000) != 0;
+            secondaryAction = (NativeMethods.GetAsyncKeyState(Win32Constants.VK_RBUTTON) & 0x8000) != 0;
         }
 
-        if (shouldApplyJitter)
-        {
-            ApplyJitter();
-        }
+        return UseAdsOnly ? (primaryAction && secondaryAction) : primaryAction;
     }
 
     private void ApplyJitter()
     {
-        try
+        int totalDeltaX = 0;
+        int totalDeltaY = 0;
+
+        foreach (var effect in _jitterEffects)
         {
-            for (int i = 0; i < 15; i++)
-            {
-                int totalDeltaX = 0;
-                int totalDeltaY = 0;
-
-                // Применяем различные типы джиттера
-                _leftRightJitter?.ApplyJitter(ref totalDeltaX, ref totalDeltaY);
-
-                if (UseController)
-                {
-                    _smoothLeftRightJitter?.ApplyJitter(ref totalDeltaX, ref totalDeltaY);
-                }
-
-                if (IsCircleJitterActive)
-                {
-                    _circleJitter?.ApplyJitter(ref totalDeltaX, ref totalDeltaY);
-                }
-
-                _pullDownJitter?.ApplyJitter(ref totalDeltaX, ref totalDeltaY);
-
-                // Отправляем движение через SendInput
-                if (totalDeltaX != 0 || totalDeltaY != 0)
-                {
-                    SendMouseInput(totalDeltaX, totalDeltaY);
-                }
-            }
+            effect.ApplyJitter(ref totalDeltaX, ref totalDeltaY);
         }
-        catch (Exception ex)
+
+        if (totalDeltaX != 0 || totalDeltaY != 0)
         {
-            Logger.Log($"Error applying jitter: {ex.Message}");
+            SendMouseInput(totalDeltaX, totalDeltaY);
         }
     }
 
-    private static void SendMouseInput(int deltaX, int deltaY)
+    /// <summary>
+    /// Отправляет команду на перемещение мыши, используя драйвер или стандартный WinAPI.
+    /// </summary>
+    private void SendMouseInput(int deltaX, int deltaY)
     {
-        var input = new INPUT
+        if (_useMouseDriver && _mouseDriverService.IsConnected)
         {
-            Type = Win32Constants.INPUT_MOUSE,
-            Mi = new MOUSEINPUT
+            if (!_mouseDriverService.SendMouseMovement(deltaX, deltaY))
             {
-                Dx = deltaX,
-                Dy = deltaY,
-                MouseData = 0,
-                DwFlags = Win32Constants.MOUSEEVENTF_MOVE,
-                Time = 0,
-                DwExtraInfo = IntPtr.Zero
+                _useMouseDriver = false;
+                Logger.Log("Driver failed, falling back to SendInput");
             }
-        };
-
-        NativeMethods.SendInput(1, new INPUT[] { input }, System.Runtime.InteropServices.Marshal.SizeOf(typeof(INPUT)));
+        }
+        else
+        {
+            var inputs = new INPUT[1];
+            inputs[0].Type = Win32Constants.INPUT_MOUSE;
+            inputs[0].Mi.DwFlags = Win32Constants.MOUSEEVENTF_MOVE;
+            NativeMethods.SendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)));
+        }
     }
 
     private bool IsTargetProcessActive()
     {
-        if (string.IsNullOrEmpty(_selectedProcessName))
-        {
-            return false;
-        }
+        if (string.IsNullOrEmpty(_selectedProcessName)) return false;
 
         IntPtr foregroundWindow = NativeMethods.GetForegroundWindow();
-        int result = NativeMethods.GetWindowThreadProcessId(foregroundWindow, out int foregroundProcessId);
-
-        if (result == 0)
+        if (NativeMethods.GetWindowThreadProcessId(foregroundWindow, out int foregroundProcessId) == 0)
         {
-            Logger.Log("Failed to get process ID of the foreground window.");
             return false;
         }
 
@@ -274,9 +266,28 @@ public class JitterService : IJitterService
         return processes.Any(p => p.Id == foregroundProcessId);
     }
 
+    private void TryConnectToDriver()
+    {
+        try
+        {
+            _useMouseDriver = _mouseDriverService.Connect();
+            Logger.Log(_useMouseDriver ? "Mouse driver connected - using kernel-level input" : "Mouse driver not available - using standard SendInput");
+        }
+        catch (Exception ex)
+        {
+            _useMouseDriver = false;
+            Logger.Log($"Error connecting to mouse driver: {ex.Message}");
+        }
+    }
+
+    #endregion
+
+    /// <inheritdoc />
     public void Dispose()
     {
         _jitterTimer?.Dispose();
         _controllerHandler?.Dispose();
+        _mouseDriverService?.Dispose();
+        GC.SuppressFinalize(this);
     }
 }

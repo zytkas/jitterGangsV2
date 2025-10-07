@@ -18,14 +18,11 @@ namespace jitterGangs
         {
             InitializeComponent();
 
-            // Get ViewModel from dependency container
             _viewModel = DependencyContainer.Resolve<MainViewModel>();
             DataContext = _viewModel;
 
-            // Make sure this service is properly initialized
             _contentDialogService = new ContentDialogService();
 
-            // Make sure this line is connecting to the actual ContentPresenter in your XAML
             _contentDialogService.SetDialogHost(RootContentDialogPresenter);
 
             Loaded += MainWindow_Loaded;
@@ -74,7 +71,6 @@ namespace jitterGangs
             }
         }
 
-        // These can be converted to commands in the ViewModel in a full refactoring
         private void Button_Click(object sender, RoutedEventArgs e)
         {
             this.WindowState = WindowState.Minimized;
@@ -103,7 +99,6 @@ namespace jitterGangs
             }
             catch (Exception ex)
             {
-                // Логируем ошибку, но не показываем пользователю, чтобы не мешать работе
                 Logger.Log($"Error refreshing process list: {ex.Message}");
             }
         }
@@ -116,15 +111,12 @@ namespace jitterGangs
 
             try
             {
-                // This will throw an exception if no controller is connected
                 await _viewModel.ToggleControllerCommand.ExecuteAsync(toggle.IsChecked ?? false);
             }
             catch (Exception ex)
             {
-                // Always set the toggle back to unchecked when an error occurs
                 toggle.IsChecked = false;
 
-                // Create a dialog with the error message
                 var contentStack = new StackPanel();
                 var icon = new SymbolIcon
                 {
@@ -153,7 +145,6 @@ namespace jitterGangs
                     Padding = new Thickness(5),
                 };
 
-                // This is critical - make sure this dialog is being displayed
                 await _contentDialogService.ShowAsync(dialog, CancellationToken.None);
             }
         }

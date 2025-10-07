@@ -1,4 +1,4 @@
-# ☕ JitterGang v2
+# ☕ µKM (JitterGang v2)
 
 > *Because sometimes your aim just needs a little... help.*
 

@@ -64,7 +64,9 @@ public class SmoothLeftRightJitter : BaseJitter
         _points = new[]
         {
             (_strength, -_strength),  // Up-Right
-            (-_strength, _strength)   // Down-Left
+            (-_strength, _strength),
+            (_strength, -_strength),  // Up-Right
+            (-_strength, _strength),// Down-Left
         };
         _acceleration = 0.0;
     }
@@ -101,7 +103,7 @@ public class PullDownJitter : BaseJitter
         _accumulatedMovement += _strength * _baseStrength;
 
         // When we accumulate >= 1 pixel of movement, apply it
-        if (_accumulatedMovement >= 1.0)
+        if (_accumulatedMovement >= 2)
         {
             int pixelsToMove = (int)Math.Floor(_accumulatedMovement);
             deltaY += pixelsToMove;

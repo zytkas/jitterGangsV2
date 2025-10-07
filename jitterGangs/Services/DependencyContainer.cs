@@ -18,6 +18,7 @@ namespace jitterGangs
 
             // Register services
             services.AddSingleton<ISettingsService, SettingsService>();
+            services.AddSingleton<IDriverLoaderService, DriverLoaderService>();
             services.AddSingleton<IMouseDriverService, MouseDriverService>();
             services.AddSingleton<IJitterService, JitterService>();
             services.AddSingleton<IFirebaseService, FirebaseService>();

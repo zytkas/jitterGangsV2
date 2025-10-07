@@ -94,6 +94,21 @@ namespace jitterGangs
             }
         }
 
+
+        private async void ProcessComboBox_DropDownOpened(object sender, EventArgs e)
+        {
+            try
+            {
+                await _viewModel.RefreshProcessListCommand.ExecuteAsync(null);
+            }
+            catch (Exception ex)
+            {
+                // Логируем ошибку, но не показываем пользователю, чтобы не мешать работе
+                Logger.Log($"Error refreshing process list: {ex.Message}");
+            }
+        }
+
+
         private async void ToggleSwitch_Click_1(object sender, RoutedEventArgs e)
         {
             var toggle = sender as ToggleSwitch;

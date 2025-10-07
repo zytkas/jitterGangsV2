@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using JitterGang.Models;
 using JitterGang.Services;
 using JitterGang.Services.Input.Controllers;
+using jitterGangs.Services;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -13,6 +14,7 @@ public partial class MainViewModel : ObservableObject
 {
     private readonly ISettingsService _settingsService;
     private readonly IJitterService _jitterService;
+    private readonly IDriverLoaderService _driverLoaderService;
     private bool _isInitialized;
 
     [ObservableProperty]
@@ -28,10 +30,11 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private JitterSettings _settings;
 
-    public MainViewModel(ISettingsService settingsService, IJitterService jitterService)
+    public MainViewModel(ISettingsService settingsService, IJitterService jitterService, IDriverLoaderService driverLoaderService)
     {
         _settingsService = settingsService;
         _jitterService = jitterService;
+        _driverLoaderService = driverLoaderService;
 
         _processes = new ObservableCollection<string>();
         _settings = new JitterSettings();
@@ -145,6 +148,13 @@ public partial class MainViewModel : ObservableObject
         {
             Logger.Log("=== Starting MainViewModel Initialization ===");
 
+            Logger.Log("Checking and loading driver...");
+            bool driverLoaded = await _driverLoaderService.EnsureDriverLoadedAsync();
+            if (!driverLoaded)
+            {
+                Logger.Log("Warning: Driver could not be loaded. Application will continue with SendInput fallback.");
+            }
+
             var loadedSettings = await _settingsService.LoadSettingsAsync();
 
             if (loadedSettings != null)
@@ -183,6 +193,7 @@ public partial class MainViewModel : ObservableObject
             throw;
         }
     }
+
 
     private static int ConvertKeyNameToCode(string keyName)
     {

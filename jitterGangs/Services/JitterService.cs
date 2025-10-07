@@ -16,8 +16,8 @@ public interface IJitterEffect
 
 public class JitterService : IJitterService, IDisposable
 {
-    private const int JitterApplyDelayMs = 1;
 
+    private const int MIN_DELAY = 1;
     private readonly JitterTimer? _jitterTimer;
     private readonly IMouseDriverService _mouseDriverService;
     private readonly List<IJitterEffect> _jitterEffects = new();
@@ -27,7 +27,7 @@ public class JitterService : IJitterService, IDisposable
     private bool _toggleKeyPressed;
     private bool _useMouseDriver;
     private int _toggleKey;
-    private int _delay = 1;
+    private int _delay;
     private string? _selectedProcessName;
     private ControllerHandler? _controllerHandler;
 
@@ -35,7 +35,7 @@ public class JitterService : IJitterService, IDisposable
     {
         _mouseDriverService = mouseDriverService;
         _jitterTimer = new JitterTimer(this);
-
+        _delay = MIN_DELAY; // Default delay
         TryConnectToDriver();
         RebuildJitterPipeline();
     }
@@ -155,7 +155,7 @@ public class JitterService : IJitterService, IDisposable
             if (ShouldApplyJitter())
             {
                 ApplyJitter();
-                Thread.Sleep(JitterApplyDelayMs);
+                Thread.Sleep(1);
             }
         }
         catch (Exception ex)
@@ -216,23 +216,24 @@ public class JitterService : IJitterService, IDisposable
 
     private void ApplyJitter()
     {
-        int totalDeltaX = 0;
-        int totalDeltaY = 0;
-
-        foreach (var effect in _jitterEffects)
+        for (int i = 0; i < 15; i++)
         {
-            effect.ApplyJitter(ref totalDeltaX, ref totalDeltaY);
-        }
+            int totalDeltaX = 0;
+            int totalDeltaY = 0;
 
-        if (totalDeltaX != 0 || totalDeltaY != 0)
-        {
-            SendMouseInput(totalDeltaX, totalDeltaY);
+            // Каждый раз заново применяем все эффекты
+            foreach (var effect in _jitterEffects)
+            {
+                effect.ApplyJitter(ref totalDeltaX, ref totalDeltaY);
+            }
+
+            if (totalDeltaX != 0 || totalDeltaY != 0)
+            {
+                SendMouseInput(totalDeltaX, totalDeltaY);
+            }
         }
     }
 
-    /// <summary>
-    /// Отправляет команду на перемещение мыши, используя драйвер или стандартный WinAPI.
-    /// </summary>
     private void SendMouseInput(int deltaX, int deltaY)
     {
         if (_useMouseDriver && _mouseDriverService.IsConnected)
@@ -245,11 +246,26 @@ public class JitterService : IJitterService, IDisposable
         }
         else
         {
+                SendInputFallback(deltaX, deltaY);
+        }
+    }
+
+
+    private void SendInputFallback(int deltaX, int deltaY)
+    {
             var inputs = new INPUT[1];
             inputs[0].Type = Win32Constants.INPUT_MOUSE;
+            inputs[0].Mi.Dx = deltaX;
+            inputs[0].Mi.Dy = deltaY;
             inputs[0].Mi.DwFlags = Win32Constants.MOUSEEVENTF_MOVE;
-            NativeMethods.SendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)));
-        }
+            inputs[0].Mi.MouseData = 0;
+            inputs[0].Mi.Time = 0;
+            inputs[0].Mi.DwExtraInfo = IntPtr.Zero;
+            uint result = NativeMethods.SendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)));
+            if (result == 0)
+            {
+                Logger.Log($"SendInput failed with error: {Marshal.GetLastWin32Error()}");
+            }
     }
 
     private bool IsTargetProcessActive()
@@ -271,7 +287,8 @@ public class JitterService : IJitterService, IDisposable
         try
         {
             _useMouseDriver = _mouseDriverService.Connect();
-            Logger.Log(_useMouseDriver ? "Mouse driver connected - using kernel-level input" : "Mouse driver not available - using standard SendInput");
+            Logger.Log(_useMouseDriver ? "Mouse driver connected - using kernel-level input" 
+                : "Mouse driver not available - using standard SendInput");
         }
         catch (Exception ex)
         {

@@ -105,7 +105,8 @@
                  Background="#18181B"
                  BorderBrush="#27272A"
                  BorderThickness="3"
-                 Height="40"/>
+                 Height="40"
+                 DropDownOpened="ProcessComboBox_DropDownOpened"/>
 
             <!-- ComboBox -->
         </StackPanel>

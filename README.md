@@ -17,7 +17,7 @@ JitterGang is my personal project that I built to learn about WPF, MVVM architec
 - **C# / .NET 8.0** - Because modern problems bla bla bla
 - **WPF** - For that sleek, dark-themed UI
 - **MVVM Architecture** - Because separation of concerns isn't just for therapists
-- **Win32 API** - To get down to the metal with Windows input handlingd (fixed tho)
+- **Win32 API** - To get down to the metal with Windows input handling (fixed tho, now driver warrior)
 - **Dependency Injection** - Services that serve services, it's services all the way down!
 - **XInput/DirectInput** - For when you prefer "right input" over poor mnk 
 - **Firebase Database** - Cloud-based licensing and authentication system

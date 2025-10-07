@@ -37,6 +37,10 @@
     <PackageReference Include="WPF-UI.Abstractions" Version="4.0.3" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Page Include="App.xaml" />
+  </ItemGroup>
+
   <ItemGroup>    <Resource Include="coffee-mug.png" />
 	  <Resource Include="coffee-mug.ico" />
   </ItemGroup>

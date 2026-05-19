@@ -1,4 +1,4 @@
-# JitterGang
+# μKM (JitterGang v2)
 
 A Windows desktop application for input automation, built as a study in WPF, MVVM, and low-level Windows input handling. The application applies configurable jitter patterns to mouse or controller input, scoped to a single target process, with both a user-mode (`SendInput`) and a kernel-mode driver path.
 

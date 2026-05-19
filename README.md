@@ -1,4 +1,4 @@
-# ☕ JitterGang
+# ☕ μKM (jitterGang v2)
 
 > *A WPF playground for learning Windows input internals, kernel drivers, and MVVM.*
 

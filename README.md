@@ -1,95 +1,113 @@
-# ☕ µKM (JitterGang v2)
+# ☕ JitterGang
 
-> *Because sometimes your aim just needs a little... help.*
+> *A WPF playground for learning Windows input internals, kernel drivers, and MVVM.*
 
 ![C#](https://img.shields.io/badge/C%23-239120?style=for-the-badge&logo=c-sharp&logoColor=white)
-![.NET](https://img.shields.io/badge/.NET-5C2D91?style=for-the-badge&logo=.net&logoColor=white)
+![.NET 8](https://img.shields.io/badge/.NET%208-512BD4?style=for-the-badge&logo=.net&logoColor=white)
 ![WPF](https://img.shields.io/badge/WPF-0078D7?style=for-the-badge&logo=windows&logoColor=white)
+![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 
 ## 🎮 What is this?
 
-JitterGang is my personal project that I built to learn about WPF, MVVM architecture, and Windows input handling. It's an input modification tool that applies customizable jitter patterns to your mouse or controller inputs, targeting specific applications.
+JitterGang is a personal project I built to dive deep into WPF, MVVM, and the dark corners of the Windows input stack. It applies customizable jitter patterns to mouse or controller input, scoped to a single target process.
 
-**Is this a hack?** Not exactly - it's an educational project that shows how input simulation works in Windows. Think of it as "help in aiming"😉
+**Is it a cheat?** It's an educational exploration of how input simulation works on Windows, with both a user-mode (`SendInput`) path and a kernel-mode driver path. Treat it as a learning artifact, not a tool for ruining other people's games.
 
 ## 💻 Tech Stack
 
-- **C# / .NET 8.0** - Because modern problems bla bla bla
-- **WPF** - For that sleek, dark-themed UI
-- **MVVM Architecture** - Because separation of concerns isn't just for therapists
-- **Win32 API** - To get down to the metal with Windows input handling (fixed tho, now driver warrior)
-- **Dependency Injection** - Services that serve services, it's services all the way down!
-- **XInput/DirectInput** - For when you prefer "right input" over poor mnk 
-- **Firebase Database** - Cloud-based licensing and authentication system
+| Layer | Tech |
+|---|---|
+| Runtime | C# / .NET 8.0 |
+| UI | WPF + [WPF-UI](https://github.com/lepoco/wpfui) (Fluent dark theme) |
+| Architecture | MVVM via `CommunityToolkit.Mvvm` + DI (`Microsoft.Extensions.DependencyInjection`) |
+| Input (user-mode) | Win32 `SendInput` via P/Invoke |
+| Input (kernel-mode) | Custom signed-driver loader (kdmapper) + `DeviceIoControl` IOCTL |
+| Controllers | XInput + DirectInput via SharpDX |
+| Auth & licensing | Firebase Realtime Database with HWID-bound keys |
+| Local storage | DPAPI-encrypted license file, JSON settings |
 
 ## ✨ Features
 
-- 🎯 **Process targeting** - Choose which application gets the jitters
-- 💪 **Customizable intensity** - From subtle to "had way too much espresso"
-- ⚪ **Circle jitter** - For smooth, circular mouse movements
-- 🎮 **Controller support** - Xbox\Sony and other DirectInput controllers
-- 🔫 **ADS-only mode** - Only active when aiming down sights 
-- ⌨️ **Configurable hotkey** - Toggle with your favorite F-key
+- 🎯 **Process targeting** — jitter only activates while a chosen window is in the foreground
+- 💪 **Customizable intensity** — independent strength for horizontal jitter and vertical pull-down
+- ⚪ **Circle jitter mode** — circular movement pattern with configurable radius
+- 🎮 **Controller support** — Xbox / PlayStation / generic DirectInput pads with hot-swap reconnect
+- 🔫 **ADS-only mode** — only fires when both primary and secondary actions are held
+- ⌨️ **Configurable hotkey** — toggle with F1–F12, Shift, Capslock, or mouse X1/X2
+- 🛡️ **Driver with fallback** — kernel-level mouse driver when available, transparent fallback to `SendInput` when it isn't
 
 ## 🖼️ Screenshots
 
-Check out the [link](https://imgur.com/a/z0kKKun) to see the application!
-
-## 📝 What I Learned
-
-This project was my playground for:
-
-- Building a **complete MVVM application** with proper separation of concerns
-- Creating **high-precision timing** systems (harder than it sounds!)
-- Managing **state across multiple threads** without losing my mind
-- Working with **native Windows APIs** for input simulation
-- Implementing **controller input detection** for multiple controller types
-- Designing a **modern, responsive UI** using WPF-UI
+[See the app in action →](https://imgur.com/a/z0kKKun)
 
 ## 🏗️ Architecture
 
 ```
 JitterGang/
-├── Models/              # Data structures
-├── ViewModels/          # The brains of the operation
-├── Services/            # Where the magic happens
-│   ├── Input/           # Mouse and controller handling
-│   ├── Jitter/          # Various jitter algorithms
-│   └── Timer/           # High-precision timer implementation
-└── Views/               # The pretty face of the app
+├── Models/                    # JitterSettings (observable, persisted to JSON)
+├── ViewModels/                # MainViewModel, LoginViewModel, LicenseManagerViewModel
+├── Services/
+│   ├── Input/
+│   │   ├── Controllers/       # XInput + DirectInput handlers, auto-detection
+│   │   └── MouseDriverService # IOCTL communication with kernel driver
+│   ├── Jitter/                # LeftRight, Circle, Smooth, PullDown effects
+│   ├── Timer/                 # HighPrecisionTimer + JitterTimer wrapper
+│   ├── SettingsService        # JSON persistence
+│   ├── FirebaseService        # License verification + admin operations
+│   ├── DriverLoaderService    # kdmapper invocation, driver presence check
+│   └── DependencyContainer    # Service registration & resolution
+└── Views/                     # MainWindow, LoginWindow, LicenseManagerWindow
 ```
 
-## 🔐 Authentication System
+### How the input pipeline works
 
-*Note: The authentication code is intentionally excluded from this repo (check the .gitignore). If you're an employer looking at this, I'd be happy to discuss the Firebase implementation in an interview!*
+1. `HighPrecisionTimer` ticks at the user-configured interval (1–100 ms) using a `Stopwatch`-driven loop for sub-millisecond accuracy.
+2. On each tick, `JitterService` checks the toggle key, the target process, and the trigger state (mouse buttons or controller triggers).
+3. If active, registered `IJitterEffect` implementations (`LeftRightJitter`, `CircleJitter`, `SmoothLeftRightJitter`, `PullDownJitter`) compose a final `(deltaX, deltaY)`.
+4. The delta is sent through the kernel driver via `DeviceIoControl` when available; otherwise it falls back to `SendInput`. Failure of the driver path automatically disables it for the rest of the session.
+
+## 🔐 Authentication
+
+Licensing is handled through Firebase Realtime Database. Each license key is bound to a hardware ID derived from CPU, motherboard, BIOS, and OS volume serials (SHA-256 hashed). The license file is encrypted with Windows DPAPI (`ProtectedData.Protect`) scoped to the current user.
+
+> The Firebase service files and the encrypted constants are excluded from this repo (see `.gitignore`). Happy to walk through the implementation in an interview.
+
+## 📝 What I learned
+
+- Building a **fully MVVM-structured WPF app** with constructor-injected services
+- Implementing a **sub-millisecond timer** without burning a CPU core
+- Communicating with a **kernel-mode driver** from managed code via `SafeFileHandle` + IOCTL
+- Designing a system with **graceful degradation** — the app stays functional whether or not the driver loads
+- Coordinating **multi-threaded input polling** for XInput and DirectInput devices with reconnect handling
+- Encrypting configuration secrets and binding licenses to hardware fingerprints
+
+## 🧠 Files worth a look
+
+- [`Services/Timer/HighPrecisionTimer.cs`](jitterGangs/Services/Timer/HighPrecisionTimer.cs) — `Stopwatch`-based async timer
+- [`Services/JitterService.cs`](jitterGangs/Services/JitterService.cs) — main orchestrator with driver/SendInput dual path
+- [`Services/Input/MouseDriverService.cs`](jitterGangs/Services/Input/MouseDriverService.cs) — kernel driver IOCTL wrapper
+- [`Services/DriverLoaderService.cs`](jitterGangs/Services/DriverLoaderService.cs) — kdmapper-based driver loading
+- [`Services/Jitter/JitterTypes.cs`](jitterGangs/Services/Jitter/JitterTypes.cs) — pluggable jitter algorithms
+- [`Services/Input/Controllers/ControllerDetector.cs`](jitterGangs/Services/Input/Controllers/ControllerDetector.cs) — XInput/DirectInput auto-detection
 
 ## 🚀 Getting Started
 
-1. Download the latest .exe from the [Releases](https://github.com/yourusername/jitterGangV2/releases) page
-2. Run the application and follow the on-screen instructions
-3. Use the default key: `DEMO-1234-5678` to try it out
-4. Select your target process and adjust settings
-5. Click "Start" and toggle the jitter with your configured hotkey (default: F1)
-
-## 🧠 The Interesting Bits
-
-If you're checking out my code, look at these cool parts:
-
-- `HighPrecisionTimer.cs` - Thread-safe, high-resolution timer implementation
-- `JitterTypes.cs` - Different algorithms for mouse movement patterns
-- `ControllerDetector.cs` - Auto-detection of various controller types
-- `MainViewModel.cs` - The orchestrator of all the madness
+1. Grab the latest build from [Releases](https://github.com/yourusername/jitterGangV2/releases).
+2. Run the executable as administrator (required for driver loading).
+3. Activate with a license key (ping me on Discord for one).
+4. Pick a target process, dial in strength/delay, set your toggle hotkey.
+5. Hit **Start** and toggle in-game with your chosen key (default: F1).
 
 ## ⚠️ Disclaimer
 
-This was built as a learning exercise. Please use responsibly and be aware that using input modification tools may violate terms of service for some applications.
+This is a learning project. Using input-modification tools against online services may violate their Terms of Service and get your account banned. Use it on offline targets, test apps, or your own software.
 
 ## 📧 Contact
 
-Found this interesting? Isuess? Need key? Question?
+Questions, issues, or just want to chat about WPF / kernel drivers?
 
 [Discord](https://discord.gg/sSd5yjbnjC)
 
 ---
 
-*Built with ☕ and late nights by zytka_*
+*Built with ☕ and questionable sleep schedules by zytka_*
